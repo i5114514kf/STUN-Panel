@@ -64,7 +64,7 @@ export default {
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>CPer's STUN 监控导航</title>
+        <title>STUN 监控导航</title>
         <style>
             :root[data-theme="dark"] {
                 --bg-color: #121212;
