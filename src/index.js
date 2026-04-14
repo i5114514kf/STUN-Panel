@@ -52,7 +52,7 @@ export default {
                 <span class="service-addr">${addr}</span>
                 <span class="uptime-tag">更新时间: ${timeText}</span>
             </div>
-            <span class="ping-tag" id="ping-${name}">测速中</span>
+            <span class="ping-tag" id="ping-${name}">检测中</span>
           </a>
         </div>
       `;
@@ -60,94 +60,136 @@ export default {
 
     const html = `
     <!DOCTYPE html>
-    <html lang="zh-CN">
+    <html lang="zh-CN" data-theme="dark">
     <head>
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>CPer's STUN 实时监控导航</title>
+        <title>CPer's STUN 监控导航</title>
         <style>
-            * { margin: 0; padding: 0; box-sizing: border-box; }
-            body { 
-                background-color: #1e1e1e; color: #d4d4d4; 
-                font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; 
-                min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; 
-                overflow-x: hidden; padding-top: 5vh;
+            :root[data-theme="dark"] {
+                --bg-color: #121212;
+                --text-main: #d4d4d4;
+                --text-title: #ffffff;
+                --card-bg: rgba(30, 30, 30, 0.8);
+                --card-border: #333;
+                --card-hover-bg: rgba(45, 45, 45, 0.95);
+                --tag-bg: rgba(255, 255, 255, 0.05);
+                --sub-text: #888;
+                --shadow: 0 4px 15px rgba(0,0,0,0.5);
             }
-            .container { z-index: 10; width: 100%; max-width: 1000px; padding: 20px; text-align: center; }
-            h1 { font-size: 2rem; font-weight: 300; margin-bottom: 3rem; color: #fff; letter-spacing: 3px; }
-            
-            /* 网格排版优化 */
-            .grid { 
-                display: grid; 
-                gap: 20px; 
-                grid-template-columns: 1fr; /* 默认移动端单列 */
+            :root[data-theme="light"] {
+                --bg-color: #f0f0f2;
+                --text-main: #1d1d1f; /* 提升文字对比度 */
+                --text-title: #000000;
+                --card-bg: rgba(255, 255, 255, 0.7);
+                --card-border: #ccd0d5;
+                --card-hover-bg: rgba(255, 255, 255, 1);
+                --tag-bg: rgba(0, 0, 0, 0.05);
+                --sub-text: #424245; /* 提升次要文字对比度 */
+                --shadow: 0 4px 20px rgba(0,0,0,0.08);
             }
 
-            /* PC端排版：当宽度大于 768px 时变为双列，大于 1000px 时变为三列 */
-            @media (min-width: 768px) {
-                .grid { grid-template-columns: repeat(2, 1fr); }
+            * { margin: 0; padding: 0; box-sizing: border-box; }
+            body { 
+                background-color: var(--bg-color); color: var(--text-main); 
+                font-family: -apple-system, system-ui, sans-serif; 
+                min-height: 100vh; display: flex; flex-direction: column; align-items: center; 
+                transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden;
             }
-            @media (min-width: 1024px) {
-                .grid { grid-template-columns: repeat(3, 1fr); }
+
+            /* 粒子画布修复：使用混合模式使其在亮/暗背景下都能显示 */
+            canvas {
+                mix-blend-mode: difference;
+                pointer-events: none;
             }
+
+            .theme-toggle {
+                position: absolute; top: 20px; right: 20px; z-index: 100;
+                padding: 8px 16px; border-radius: 30px; border: 1px solid var(--card-border);
+                background: var(--card-bg); color: var(--text-main); cursor: pointer;
+                font-size: 0.8rem; font-weight: 500; backdrop-filter: blur(10px); 
+                transition: all 0.3s; box-shadow: var(--shadow);
+            }
+            .theme-toggle:hover { border-color: #007acc; transform: scale(1.05); }
+
+            .container { flex: 1; z-index: 10; width: 100%; max-width: 1000px; padding: 80px 20px; text-align: center; }
+            h1 { font-size: 2.2rem; font-weight: 300; margin-bottom: 3.5rem; color: var(--text-title); letter-spacing: 2px; }
+            
+            .grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
+            @media (min-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+            @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
 
             .nav-btn {
                 display: flex; justify-content: space-between; align-items: center;
-                padding: 20px; color: #fff; text-decoration: none;
-                border: 1px solid #333; background: rgba(37, 37, 38, 0.7);
-                border-radius: 8px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-                backdrop-filter: blur(10px); height: 100%;
+                padding: 24px; color: inherit; text-decoration: none;
+                border: 1px solid var(--card-border); background: var(--card-bg);
+                border-radius: 12px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                backdrop-filter: blur(15px); box-shadow: var(--shadow);
             }
-            
             .nav-btn:hover { 
-                border-color: #007acc; 
-                background: rgba(45, 45, 45, 0.9);
-                transform: translateY(-5px); 
-                box-shadow: 0 10px 20px rgba(0, 0, 0, 0.5); 
+                border-color: #007acc; background: var(--card-hover-bg);
+                transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.15); 
             }
             
-            .service-info { text-align: left; display: flex; flex-direction: column; overflow: hidden; }
-            .service-name { font-size: 1.2rem; font-weight: 500; margin-bottom: 6px; color: #eee; }
-            .service-addr { 
-                font-size: 0.75rem; color: #666; font-family: "Cascadia Code", Consolas, monospace; 
-                margin-bottom: 8px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
-            }
-            .uptime-tag { font-size: 0.7rem; color: #444; }
+            .service-info { text-align: left; display: flex; flex-direction: column; }
+            .service-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; color: var(--text-title); }
+            .service-addr { font-size: 0.8rem; color: var(--sub-text); font-family: ui-monospace, SFMono-Regular, monospace; margin-bottom: 8px; }
+            .uptime-tag { font-size: 0.75rem; color: var(--sub-text); opacity: 0.9; }
             
-            .ping-tag { font-size: 0.8rem; font-family: monospace; padding: 4px 10px; border-radius: 4px; background: rgba(0,0,0,0.4); }
-            .ping-low { color: #4caf50; border: 1px solid rgba(76, 175, 80, 0.2); }
-            .ping-mid { color: #4fc3f7; border: 1px solid rgba(79, 195, 247, 0.2); }
-            .ping-warn { color: #ffb74d; border: 1px solid rgba(255, 183, 77, 0.2); }
-            .ping-high { color: #ef5350; border: 1px solid rgba(239, 83, 80, 0.2); }
+            .ping-tag { font-size: 0.85rem; font-weight: 600; font-family: monospace; padding: 4px 12px; border-radius: 6px; background: var(--tag-bg); }
+            .ping-low { color: #2e7d32; } /* 浅色模式下绿色加深增强对比 */
+            .ping-mid { color: #0277bd; } /* 浅色模式下蓝色加深 */
+            .ping-high { color: #c62828; } /* 红色加深 */
+            
+            [data-theme="dark"] .ping-low { color: #81c784; }
+            [data-theme="dark"] .ping-mid { color: #4fc3f7; }
+            [data-theme="dark"] .ping-high { color: #ef5350; }
 
-            footer { padding: 40px 0; font-size: 0.8rem; color: #444; z-index: 10; }
-            footer a { color: #555; text-decoration: none; }
-            footer a:hover { color: #007acc; }
+            footer { 
+                width: 100%; padding: 40px; text-align: center; 
+                font-size: 0.85rem; color: var(--sub-text); z-index: 10;
+            }
+            footer a { color: inherit; text-decoration: none; font-weight: 500; border-bottom: 1px solid transparent; transition: all 0.2s; }
+            footer a:hover { color: #007acc; border-bottom-color: #007acc; }
         </style>
     </head>
     <body>
+        <button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">切换到浅色模式</button>
+
         <div class="container">
             <h1>节点实时状态</h1>
             <div class="grid">
-                ${servicesHtml || '<div style="color:#555; grid-column: 1/-1;">无在线节点</div>'}
+                ${servicesHtml || '<div style="color:var(--sub-text); grid-column: 1/-1;">等待上报...</div>'}
             </div>
         </div>
-        <footer><a href="https://beian.miit.gov.cn/" target="_blank">蜀ICP备2025160729号-2</a></footer>
+
+        <footer>
+            <a href="https://github.com/i5114514kf/STUN-Panel" target="_blank">View on GitHub</a>
+        </footer>
 
         <script>
+            function toggleTheme() {
+                const root = document.documentElement;
+                const btn = document.getElementById('themeBtn');
+                const isDark = root.getAttribute('data-theme') === 'dark';
+                
+                root.setAttribute('data-theme', isDark ? 'light' : 'dark');
+                btn.innerText = isDark ? '切换到深色模式' : '切换到浅色模式';
+            }
+
             async function testLatency(name, addr) {
                 const tag = document.getElementById('ping-' + name);
                 const start = Date.now();
                 const testUrl = addr.startsWith('http') ? addr : 'http://' + addr;
                 try {
                     const controller = new AbortController();
-                    setTimeout(() => controller.abort(), 4000);
+                    setTimeout(() => controller.abort(), 3000);
                     await fetch(testUrl, { mode: 'no-cors', signal: controller.signal });
                     displayPing(tag, Date.now() - start);
                 } catch (e) {
                     const latency = Date.now() - start;
-                    if (latency < 3800) displayPing(tag, latency);
-                    else { tag.innerText = 'TIMEOUT'; tag.className = 'ping-tag ping-high'; }
+                    if (latency < 2900) displayPing(tag, latency);
+                    else { tag.innerText = '超时'; tag.className = 'ping-tag ping-high'; }
                 }
             }
 
@@ -155,7 +197,6 @@ export default {
                 tag.innerText = ms + 'ms';
                 if (ms <= 50) tag.className = 'ping-tag ping-low';
                 else if (ms <= 200) tag.className = 'ping-tag ping-mid';
-                else if (ms <= 500) tag.className = 'ping-tag ping-warn';
                 else tag.className = 'ping-tag ping-high';
             }
 
@@ -168,8 +209,8 @@ export default {
             setInterval(updateAll, 5000);
         </script>
 
-        <script color="255,255,255" opacity="0.3" zIndex="-1" count="100">
-            !function(){function n(n,e,t){return n.getAttribute(e)||t}function e(n){return document.getElementsByTagName(n)}function t(){var t=e("script"),o=t.length,i=t[o-1];return{l:o,z:n(i,"zIndex",-1),o:n(i,"opacity",.5),c:n(i,"color","0,0,0"),n:n(i,"count",99)}}function o(){a=m.width=window.innerWidth||document.documentElement.clientWidth||document.body.clientWidth,c=m.height=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight}function i(){r.clearRect(0,0,a,c);var n,e,t,o,m,l;s.forEach(function(i,x){for(i.x+=i.xa,i.y+=i.ya,i.xa*=i.x>a||i.x<0?-1:1,i.ya*=i.y>c||i.y<0?-1:1,r.fillRect(i.x-.5,i.y-.5,1,1),e=x+1;e<u.length;e++)n=u[e],null!==n.x&&null!==n.y&&(o=i.x-n.x,m=i.y-n.y,l=o*o+m*m,l<n.max&&(n===y&&l>=n.max/2&&(i.x-=.03*o,i.y-=.03*m),t=(n.max-l)/n.max,r.beginPath(),r.lineWidth=t/2,r.strokeStyle="rgba("+d.c+","+(t+.2)+")",r.moveTo(i.x,i.y),r.lineTo(n.x,n.y),r.stroke()))}),x(i)}var a,c,u,m=document.createElement("canvas"),d=t(),l="c_n"+d.l,r=m.getContext("2d"),x=window.requestAnimationFrame||window.webkitRequestAnimationFrame||window.mozRequestAnimationFrame||window.oRequestAnimationFrame||window.msRequestAnimationFrame||function(n){window.setTimeout(n,1e3/45)},w=Math.random,y={x:null,y:null,max:2e4};m.id=l,m.style.cssText="position:fixed;top:0;left:0;z-index:"+d.z+";opacity:"+d.o,e("body")[0].appendChild(m),o(),window.onresize=o,window.onmousemove=function(n){n=n||window.event,y.x=n.clientX,y.y=n.clientY},window.onmouseout=function(){y.x=null,y.y=null};for(var s=[],f=0;d.n>f;f++){var h=w()*a,g=w()*c,v=2*w()-1,p=2*w()-1;s.push({x:h,y:g,xa:v,ya:p,max:6e3})}u=s.concat([y]),setTimeout(function(){i()},100)}();
+        <script color="255,255,255" opacity="0.6" zIndex="-1" count="100">
+            !function(){function n(n,e,t){return n.getAttribute(e)||t}function e(n){return document.getElementsByTagName(n)}function t(){var t=e("script"),o=t.length,i=t[o-1];return{l:o,z:n(i,"zIndex",-1),o:n(i,"opacity",.5),c:n(i,"color","0,0,0"),n:n(i,"count",99)}}function o(){a=m.width=window.innerWidth||document.documentElement.clientWidth||document.body.clientWidth,c=m.height=window.innerHeight||document.documentElement.clientHeight||document.body.clientHeight}function i(){r.clearRect(0,0,a,c);var n,e,t,o,m,l;s.forEach(function(i,x){for(i.x+=i.xa,i.y+=i.ya,i.xa*=i.x>a||i.x<0?-1:1,i.ya*=i.y>c||i.y<0?-1:1,r.fillRect(i.x-.5,i.y-.5,1,1),e=x+1;e<u.length;e++)n=u[e],null!==n.x&&null!==n.y&&(o=i.x-n.x,m=i.y-n.y,l=o*o+m*m,l<n.max&&(n===y&&l>=n.max/2&&(i.x-=.03*o,i.y-=.03*m),t=(n.max-l)/n.max,r.beginPath(),r.lineWidth=t/2,r.strokeStyle="rgba("+d.c+","+(t+.2)+")",r.moveTo(i.x,i.y),r.lineTo(n.x,n.y),r.stroke()))}),x(i)}var a,c,u,m=document.createElement("canvas"),d=t(),l="c_n"+d.l,r=m.getContext("2d"),x=window.requestAnimationFrame||window.webkitRequestAnimationFrame||window.mozRequestAnimationFrame||window.oRequestAnimationFrame||window.msRequestAnimationFrame||function(n){window.setTimeout(n,1e3/45)},w=Math.random,y={x:null,y:null,max:2e4};m.id=l,m.style.cssText="position:fixed;top:0;left:0;z-index:" + d.z + ";opacity:" + d.o,e("body")[0].appendChild(m),o(),window.onresize=o,window.onmousemove=function(n){n=n||window.event,y.x=n.clientX,y.y=n.clientY},window.onmouseout=function(){y.x=null,y.y=null};for(var s=[],f=0;d.n>f;f++){var h=w()*a,g=w()*c,v=2*w()-1,p=2*w()-1;s.push({x:h,y:g,xa:v,ya:p,max:6e3})}u=s.concat([y]),setTimeout(function(){i()},100)}();
         </script>
     </body>
     </html>
