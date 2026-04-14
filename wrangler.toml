@@ -1,3 +1,7 @@
 name = "stun"
 main = "src/index.js"
 compatibility_date = "2026-04-14"
+
+[[kv_namespaces]]
+binding = "LUCKY_STORE"
+id = "f3441a99fe5b45ae8ab1610c9f631bf7"
