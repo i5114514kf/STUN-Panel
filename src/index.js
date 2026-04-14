@@ -75,18 +75,18 @@ export default {
                 --card-hover-bg: rgba(45, 45, 45, 0.95);
                 --tag-bg: rgba(255, 255, 255, 0.05);
                 --sub-text: #888;
-                --shadow: 0 4px 15px rgba(0,0,0,0.5);
+                --shadow: 0 8px 32px rgba(0,0,0,0.5);
             }
             :root[data-theme="light"] {
                 --bg-color: #f0f0f2;
-                --text-main: #1d1d1f; /* 提升文字对比度 */
+                --text-main: #1d1d1f;
                 --text-title: #000000;
                 --card-bg: rgba(255, 255, 255, 0.7);
                 --card-border: #ccd0d5;
                 --card-hover-bg: rgba(255, 255, 255, 1);
                 --tag-bg: rgba(0, 0, 0, 0.05);
-                --sub-text: #424245; /* 提升次要文字对比度 */
-                --shadow: 0 4px 20px rgba(0,0,0,0.08);
+                --sub-text: #424245;
+                --shadow: 0 8px 32px rgba(0,0,0,0.06);
             }
 
             * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -94,63 +94,59 @@ export default {
                 background-color: var(--bg-color); color: var(--text-main); 
                 font-family: -apple-system, system-ui, sans-serif; 
                 min-height: 100vh; display: flex; flex-direction: column; align-items: center; 
-                transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1); overflow-x: hidden;
+                transition: background-color 0.4s ease; overflow-x: hidden; overflow-y: auto;
             }
 
-            /* 粒子画布修复：使用混合模式使其在亮/暗背景下都能显示 */
-            canvas {
-                mix-blend-mode: difference;
-                pointer-events: none;
-            }
+            canvas { mix-blend-mode: difference; pointer-events: none; }
 
             .theme-toggle {
                 position: absolute; top: 20px; right: 20px; z-index: 100;
-                padding: 8px 16px; border-radius: 30px; border: 1px solid var(--card-border);
+                padding: 10px 18px; border-radius: 30px; border: 1px solid var(--card-border);
                 background: var(--card-bg); color: var(--text-main); cursor: pointer;
-                font-size: 0.8rem; font-weight: 500; backdrop-filter: blur(10px); 
-                transition: all 0.3s; box-shadow: var(--shadow);
+                font-size: 0.85rem; backdrop-filter: blur(10px); transition: all 0.3s;
             }
-            .theme-toggle:hover { border-color: #007acc; transform: scale(1.05); }
 
-            .container { flex: 1; z-index: 10; width: 100%; max-width: 1000px; padding: 80px 20px; text-align: center; }
+            .container { flex: 1; z-index: 10; width: 100%; max-width: 1150px; padding: 80px 24px; display: flex; flex-direction: column; align-items: center; }
             h1 { font-size: 2.2rem; font-weight: 300; margin-bottom: 3.5rem; color: var(--text-title); letter-spacing: 2px; }
             
-            .grid { display: grid; gap: 24px; grid-template-columns: 1fr; }
-            @media (min-width: 768px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-            @media (min-width: 1024px) { .grid { grid-template-columns: repeat(3, 1fr); } }
+            .grid-area { width: 100%; }
+            .grid { 
+                display: grid; 
+                gap: 24px; 
+                width: 100%;
+                justify-content: center;
+                grid-template-columns: repeat(auto-fit, minmax(300px, 340px));
+            }
 
             .nav-btn {
                 display: flex; justify-content: space-between; align-items: center;
                 padding: 24px; color: inherit; text-decoration: none;
                 border: 1px solid var(--card-border); background: var(--card-bg);
-                border-radius: 12px; transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+                border-radius: 12px; transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1);
                 backdrop-filter: blur(15px); box-shadow: var(--shadow);
+                min-height: 120px;
             }
-            .nav-btn:hover { 
-                border-color: #007acc; background: var(--card-hover-bg);
-                transform: translateY(-6px); box-shadow: 0 12px 30px rgba(0,0,0,0.15); 
-            }
+            .nav-btn:hover { border-color: #007acc; background: var(--card-hover-bg); transform: translateY(-5px); }
             
             .service-info { text-align: left; display: flex; flex-direction: column; }
-            .service-name { font-size: 1.2rem; font-weight: 700; margin-bottom: 6px; color: var(--text-title); }
-            .service-addr { font-size: 0.8rem; color: var(--sub-text); font-family: ui-monospace, SFMono-Regular, monospace; margin-bottom: 8px; }
-            .uptime-tag { font-size: 0.75rem; color: var(--sub-text); opacity: 0.9; }
+            .service-name { font-size: 1.25rem; font-weight: 700; margin-bottom: 6px; color: var(--text-title); }
+            .service-addr { font-size: 0.8rem; color: var(--sub-text); font-family: monospace; margin-bottom: 10px; opacity: 0.8; }
+            .uptime-tag { font-size: 0.75rem; color: var(--sub-text); }
             
             .ping-tag { font-size: 0.85rem; font-weight: 600; font-family: monospace; padding: 4px 12px; border-radius: 6px; background: var(--tag-bg); }
-            .ping-low { color: #2e7d32; } /* 浅色模式下绿色加深增强对比 */
-            .ping-mid { color: #0277bd; } /* 浅色模式下蓝色加深 */
-            .ping-high { color: #c62828; } /* 红色加深 */
+            .ping-low { color: #2e7d32; }
+            .ping-mid { color: #0277bd; }
+            .ping-high { color: #c62828; }
             
             [data-theme="dark"] .ping-low { color: #81c784; }
             [data-theme="dark"] .ping-mid { color: #4fc3f7; }
             [data-theme="dark"] .ping-high { color: #ef5350; }
 
             footer { 
-                width: 100%; padding: 40px; text-align: center; 
-                font-size: 0.85rem; color: var(--sub-text); z-index: 10;
+                width: 100%; padding: 60px 20px; text-align: center; 
+                font-size: 0.9rem; color: var(--sub-text); z-index: 10;
             }
-            footer a { color: inherit; text-decoration: none; font-weight: 500; border-bottom: 1px solid transparent; transition: all 0.2s; }
-            footer a:hover { color: #007acc; border-bottom-color: #007acc; }
+            footer a { color: inherit; text-decoration: none; border-bottom: 1px dotted var(--sub-text); }
         </style>
     </head>
     <body>
@@ -158,8 +154,10 @@ export default {
 
         <div class="container">
             <h1>节点实时状态</h1>
-            <div class="grid">
-                ${servicesHtml || '<div style="color:var(--sub-text); grid-column: 1/-1;">等待上报...</div>'}
+            <div class="grid-area">
+                <div class="grid">
+                    ${servicesHtml || '<div style="color:var(--sub-text); grid-column: 1/-1;">等待 Lucky 数据上报...</div>'}
+                </div>
             </div>
         </div>
 
@@ -172,7 +170,6 @@ export default {
                 const root = document.documentElement;
                 const btn = document.getElementById('themeBtn');
                 const isDark = root.getAttribute('data-theme') === 'dark';
-                
                 root.setAttribute('data-theme', isDark ? 'light' : 'dark');
                 btn.innerText = isDark ? '切换到深色模式' : '切换到浅色模式';
             }
