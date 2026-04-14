@@ -1,2 +1,3 @@
-name = "stun-panel"
+name = "stun"
 main = "src/index.js"
+compatibility_date = "2026-04-14"
