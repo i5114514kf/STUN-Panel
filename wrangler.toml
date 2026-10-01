@@ -1,9 +1,12 @@
-name = "stun"
+name = "lucky"
 main = "src/index.js"
 compatibility_date = "2026-04-14"
 
+# 必须与线上 Worker 的绑定保持一致：这个命名空间里装着 Lucky 上报的真实节点记录
+# （SERVICE_* 键），id 漏写或写错会导致部署后的面板看不到任何节点。
 [[kv_namespaces]]
 binding = "LUCKY_STORE"
+id = "b96860f7290c4ee4b3e71485128608e3"
 
 [observability]
 [observability.logs]
