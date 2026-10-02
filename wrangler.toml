@@ -2,6 +2,9 @@ name = "stun"
 main = "src/index.js"
 compatibility_date = "2026-04-14"
 
+[triggers]
+crons = ["*/5 * * * *"]
+
 [[kv_namespaces]]
 binding = "LUCKY_STORE"
 

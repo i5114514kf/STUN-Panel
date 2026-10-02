@@ -1,3 +1,9 @@
+import { connect } from "cloudflare:sockets";
+
+const TCP_CHECK_TIMEOUT_MS = 3000;
+const FAILED_CHECK_LIMIT = 3;
+const MAX_CONCURRENT_CHECKS = 5;
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
@@ -9,7 +15,7 @@ export default {
       const name = url.searchParams.get("name");
       const addr = url.searchParams.get("addr");
       await env.LUCKY_STORE.put(`SERVICE_${name}`, addr, {
-        metadata: { lastUpdate: Date.now() }
+                metadata: { lastUpdate: Date.now(), failedChecks: 0 }
       });
       return new Response(`Update Success: ${name} -> ${addr}`);
     }
@@ -214,5 +220,84 @@ export default {
     `;
 
     return new Response(html, { headers: { "Content-Type": "text/html;charset=UTF-8" } });
+    },
+
+    async scheduled(controller, env) {
+        await checkServices(env.LUCKY_STORE);
   }
 };
+
+async function checkServices(store) {
+    let cursor;
+
+    do {
+        const page = await store.list({ prefix: "SERVICE_", cursor });
+        for (let index = 0; index < page.keys.length; index += MAX_CONCURRENT_CHECKS) {
+            const batch = page.keys.slice(index, index + MAX_CONCURRENT_CHECKS);
+            await Promise.all(batch.map(async (key) => {
+                const { value: addr, metadata } = await store.getWithMetadata(key.name);
+                if (!addr) return;
+
+                const reachable = await isTcpReachable(addr);
+                const latest = await store.getWithMetadata(key.name);
+                if (latest.value !== addr || latest.metadata?.lastUpdate !== metadata?.lastUpdate) return;
+
+                const failedChecks = Number(metadata?.failedChecks) || 0;
+                if (reachable) {
+                    if (failedChecks > 0) {
+                        await store.put(key.name, addr, {
+                            metadata: { ...metadata, failedChecks: 0 }
+                        });
+                    }
+                    return;
+                }
+
+                if (failedChecks + 1 >= FAILED_CHECK_LIMIT) {
+                    await store.delete(key.name);
+                } else {
+                    await store.put(key.name, addr, {
+                        metadata: { ...metadata, failedChecks: failedChecks + 1 }
+                    });
+                }
+            }));
+        }
+
+        cursor = page.list_complete ? undefined : page.cursor;
+    } while (cursor);
+}
+
+async function isTcpReachable(address) {
+    let hostname;
+    let port;
+
+    try {
+        const parsed = new URL(address.includes("://") ? address : `tcp://${address}`);
+        hostname = parsed.hostname.replace(/^\[|\]$/g, "");
+        port = Number(parsed.port);
+        if (!port && parsed.protocol === "http:") port = 80;
+        if (!port && parsed.protocol === "https:") port = 443;
+        if (!hostname || !Number.isInteger(port) || port < 1 || port > 65535) return false;
+    } catch {
+        return false;
+    }
+
+    let socket;
+    let timeoutId;
+    try {
+        socket = connect({ hostname, port }, { secureTransport: "off" });
+        await Promise.race([
+            socket.opened,
+            new Promise((_, reject) => {
+                timeoutId = setTimeout(() => reject(new Error("TCP connection timed out")), TCP_CHECK_TIMEOUT_MS);
+            })
+        ]);
+        return true;
+    } catch {
+        return false;
+    } finally {
+        clearTimeout(timeoutId);
+        try {
+            socket?.close();
+        } catch {}
+    }
+}
